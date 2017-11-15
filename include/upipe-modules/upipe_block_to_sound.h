@@ -1,7 +1,5 @@
 /*
- * Copyright (C) 2013 OpenHeadend S.A.R.L.
- *
- * Authors: Benjamin Cohen
+ * Authors: Judah Rand
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -24,7 +22,8 @@
  */
 
 /** @file
- * @short Upipe null module - free incoming urefs
+ * @short Upipe block_to_sound module - converts incoming block urefs 
+ * to outgoing sound urefs
  */
 
 #ifndef _UPIPE_MODULES_UPIPE_BLOCK_TO_SOUND_H_
@@ -36,7 +35,7 @@ extern "C" {
 
 #include <upipe/upipe.h>
 
-#define UPIPE_BLOCK_TO_SOUND_SIGNATURE UBASE_FOURCC('n', 'u', 'l', 'l')
+#define UPIPE_BLOCK_TO_SOUND_SIGNATURE UBASE_FOURCC('b', 't', 'o', 's')
 /** @This extends upipe_command with specific commands for null */
 enum upipe_block_to_sound_command {
     UPIPE_BLOCK_TO_SOUND_SENTINEL = UPIPE_CONTROL_LOCAL,

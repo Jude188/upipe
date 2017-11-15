@@ -1,7 +1,5 @@
 /*
- * Copyright (C) 2013-2014 OpenHeadend S.A.R.L.
- *
- * Authors: Benjamin Cohen
+ * Authors: Judah Rand
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -24,7 +22,9 @@
  */
 
 /** @file
- * @short Upipe null module - free incoming urefs
+ * @short Upipe block_to_sound module - converts incoming block urefs 
+ * to outgoing sound urefs
+ *
  */
 
 #include <upipe/ubase.h>
@@ -146,7 +146,7 @@ static struct upipe *upipe_block_to_sound_alloc(struct upipe_mgr *mgr,
     return &upipe_block_to_sound->upipe;
 }
 
-/** @internal @This sends data to devnull.
+/** @internal @This converts block urefs to sound urefs.
  *
  * @param upipe description structure 
  of the pipe
@@ -233,10 +233,6 @@ static int upipe_block_to_sound_control(struct upipe *upipe, int command, va_lis
             struct uref *flow_def = va_arg(args, struct uref *);
             return upipe_block_to_sound_set_flow_def(upipe, flow_def);
         }
-        case UPIPE_BLOCK_TO_SOUND_DUMP_DICT: {
-            UBASE_SIGNATURE_CHECK(args, UPIPE_BLOCK_TO_SOUND_SIGNATURE)
-            return UBASE_ERR_NONE;
-        }
         case UPIPE_SET_OUTPUT: {
             struct upipe *output = va_arg(args, struct upipe *);
             return upipe_block_to_sound_set_output(upipe, output);
@@ -318,7 +314,7 @@ static void upipe_block_to_sound_free(struct upipe *upipe)
     upipe_block_to_sound_free_void(upipe);
 }
 
-/** upipe_null (/dev/null) */
+/** upipe_block_to_sound */
 static struct upipe_mgr upipe_block_to_sound_mgr = {
     .refcount = NULL,
     .signature = UPIPE_BLOCK_TO_SOUND_SIGNATURE,
@@ -330,7 +326,8 @@ static struct upipe_mgr upipe_block_to_sound_mgr = {
     .upipe_mgr_control = NULL
 };
 
-/** @This returns the management structure for null pipes
+/** @This returns the management structure for 
+ *  block_to_sound pipes
  *
  * @return pointer to manager
  */
