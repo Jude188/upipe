@@ -217,7 +217,10 @@ static int upipe_block_to_sound_control(struct upipe *upipe, int command, va_lis
     switch (command) {
         case UPIPE_REGISTER_REQUEST: {
             struct urequest *request = va_arg(args, struct urequest *);
-            return upipe_throw_provide_request(upipe, request);
+            if (request->type == UREQUEST_UBUF_MGR ||
+                request->type == UREQUEST_FLOW_FORMAT)
+                return upipe_throw_provide_request(upipe, request);
+            return upipe_block_to_sound_register_output_request(upipe, request);
         }
         case UPIPE_UNREGISTER_REQUEST: {
             struct urequest *request = va_arg(args, struct urequest *);
