@@ -198,7 +198,7 @@ static int upipe_block_to_sound_set_flow_def(struct upipe *upipe,
     uref_sound_flow_set_planes(flow_def, 0);
     uref_sound_flow_add_plane(flow_def, "lr");
     uref_sound_flow_set_channels(flow_def, upipe_block_to_sound->channels);
-    
+
     upipe_input(upipe, flow_def, NULL);
 
     return UBASE_ERR_NONE;
@@ -226,7 +226,6 @@ static int upipe_block_to_sound_control(struct upipe *upipe, int command, va_lis
                 return UBASE_ERR_NONE;
             return upipe_block_to_sound_free_output_proxy(upipe, request);
         }
-
         case UPIPE_SET_FLOW_DEF: {
             struct uref *flow_def = va_arg(args, struct uref *);
             return upipe_block_to_sound_set_flow_def(upipe, flow_def);
@@ -265,7 +264,7 @@ static bool upipe_block_to_sound_handle(struct upipe *upipe, struct uref *uref,
     int samples;
     samples = block_size / 4 /*s32 */ / 2 /*stereo */;
     block_size = samples * 8;             //block_size %2 != 0
-    
+
     assert(upipe_block_to_sound->ubuf_mgr);
     struct ubuf *ubuf_block_to_sound = ubuf_sound_alloc(upipe_block_to_sound->ubuf_mgr,
                                                         samples);
