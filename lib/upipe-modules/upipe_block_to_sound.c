@@ -22,8 +22,7 @@
  */
 
 /** @file
- * @short Upipe block_to_sound module - converts incoming block urefs 
- * to outgoing sound urefs
+ * @short Upipe block_to_sound module - converts incoming block urefs to outgoing sound urefs
  *
  */
 
@@ -148,8 +147,7 @@ static struct upipe *upipe_block_to_sound_alloc(struct upipe_mgr *mgr,
 
 /** @internal @This converts block urefs to sound urefs.
  *
- * @param upipe description structure 
- of the pipe
+ * @param upipe description structure of the pipe
  * @param uref uref structure
  * @param upump_p reference to pump that generated the buffer
  */
@@ -326,8 +324,7 @@ static struct upipe_mgr upipe_block_to_sound_mgr = {
     .upipe_mgr_control = NULL
 };
 
-/** @This returns the management structure for 
- *  block_to_sound pipes
+/** @This returns the management structure for block_to_sound pipes
  *
  * @return pointer to manager
  */

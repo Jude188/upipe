@@ -22,8 +22,7 @@
  */
 
 /** @file
- * @short Upipe block_to_sound module - converts incoming block urefs 
- * to outgoing sound urefs
+ * @short Upipe block_to_sound module - converts incoming block urefs to outgoing sound urefs
  */
 
 #ifndef _UPIPE_MODULES_UPIPE_BLOCK_TO_SOUND_H_
