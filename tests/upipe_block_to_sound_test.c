@@ -62,24 +62,17 @@
 
 static struct uref *output = NULL;
 
-static void sound_fill_in(struct ubuf *ubuf)
+static void block_fill_in(struct ubuf *ubuf)
 {
     size_t size;
-    uint8_t sample_size;
-    ubase_assert(ubuf_sound_size(ubuf, &size, &sample_size));
-    int octets = size * sample_size;
+    ubase_assert(ubuf_block_size(ubuf, &size));
 
-    const char *channel = NULL;
-    while (ubase_check(ubuf_sound_plane_iterate(ubuf, &channel)) &&
-           channel != NULL) {
-        uint8_t *buffer;
-        ubase_assert(ubuf_sound_plane_write_uint8_t(ubuf, channel, 0, -1,
-                                                    &buffer));
+    uint8_t *buffer;
+    for (int x = 0; x < size; x++)
+        buffer[x] = (uint32_t)('lr' + x);
+    ubase_assert(ubuf_block_write(ubuf, 0, -1, &buffer));
 
-        for (int x = 0; x < octets; x++)
-            buffer[x] = (uint8_t)channel[0] + x;
-        ubase_assert(ubuf_sound_plane_unmap(ubuf, channel, 0, -1));
-    }
+    ubase_assert(ubuf_block_unmap(ubuf, 0));
 }
 
 /** definition of our uprobe */
@@ -213,7 +206,7 @@ int main(int argc, char **argv)
 
     uref = uref_block_alloc(uref_mgr, block_mgr, block_size);
     assert(uref);
-    sound_fill_in(uref->ubuf);
+    block_fill_in(uref->ubuf);
 
     /* Now send uref */
     upipe_input(upipe_block_to_sound, uref, NULL);
