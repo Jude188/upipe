@@ -41,6 +41,7 @@
 #include <upipe/upipe_helper_urefcount.h>
 #include <upipe/upipe_helper_void.h>
 #include <upipe/upipe_helper_input.h>
+#include <upipe/upipe_helper_flow.h>
 #include <upipe/upipe_helper_output.h>
 #include <upipe/upipe_helper_ubuf_mgr.h>
 #include <upipe-modules/upipe_block_to_sound.h>
@@ -64,6 +65,9 @@ static bool upipe_block_to_sound_handle(struct upipe *upipe, struct uref *uref,
 struct upipe_block_to_sound {
     /** refcount management structure */
     struct urefcount urefcount;
+
+    /** configuration flow_def */
+    struct uref *flow_def_config;
 
     /** ubuf manager */
     struct ubuf_mgr *ubuf_mgr;
@@ -95,15 +99,12 @@ struct upipe_block_to_sound {
 
     /**  data to set flow_def and ubuf */
     uint8_t sample_size;
-    uint8_t sample_bits;
     uint8_t planes;
-    uint8_t channels;
-
 };
 
 UPIPE_HELPER_UPIPE(upipe_block_to_sound, upipe, UPIPE_BLOCK_TO_SOUND_SIGNATURE);
 UPIPE_HELPER_UREFCOUNT(upipe_block_to_sound, urefcount, upipe_block_to_sound_free)
-UPIPE_HELPER_VOID(upipe_block_to_sound);
+UPIPE_HELPER_FLOW(upipe_block_to_sound, UREF_SOUND_FLOW_DEF);
 UPIPE_HELPER_INPUT(upipe_block_to_sound, urefs, nb_urefs, max_urefs, blockers,
                    upipe_block_to_sound_handle);
 UPIPE_HELPER_OUTPUT(upipe_block_to_sound, output, flow_def, output_state, request_list);
@@ -125,24 +126,34 @@ static struct upipe *upipe_block_to_sound_alloc(struct upipe_mgr *mgr,
                                       struct uprobe *uprobe,
                                       uint32_t signature, va_list args)
 {
-    struct upipe *upipe = upipe_block_to_sound_alloc_void(mgr, uprobe, signature, args);
+    struct uref *flow_def;
+
+    struct upipe *upipe = upipe_block_to_sound_alloc_flow(mgr, uprobe, signature, args, &flow_def);
     if (unlikely(upipe == NULL))
         return NULL;
 
     struct upipe_block_to_sound *upipe_block_to_sound = upipe_block_to_sound_from_upipe(upipe);
+
+    uref_sound_flow_get_planes(flow_def,
+            &upipe_block_to_sound->planes);
+    if (upipe_block_to_sound->planes != 1) {
+        upipe_err_va(upipe, "wrong number of planes: %d",
+                upipe_block_to_sound->planes);
+        upipe_block_to_sound_free_flow(upipe);
+        return NULL;
+    }
+    uref_sound_flow_get_sample_size(flow_def,
+            &upipe_block_to_sound->sample_size);
+    upipe_block_to_sound->flow_def_config = uref_dup(flow_def);
+
     upipe_block_to_sound_init_urefcount(upipe);
     upipe_block_to_sound_init_input(upipe);
     upipe_block_to_sound_init_output(upipe);
     upipe_block_to_sound_init_ubuf_mgr(upipe);
 
-    upipe_block_to_sound->sample_size = 8;
-    upipe_block_to_sound->sample_bits = 20;
-    upipe_block_to_sound->planes = 1;
-    upipe_block_to_sound->channels = 2;
+    upipe_throw_ready(upipe);
 
-    upipe_throw_ready(&upipe_block_to_sound->upipe);
-
-    return &upipe_block_to_sound->upipe;
+    return upipe;
 }
 
 /** @internal @This converts block urefs to sound urefs.
@@ -184,20 +195,24 @@ static int upipe_block_to_sound_set_flow_def(struct upipe *upipe,
                 (ubase_ncmp(def, "block."))))
         return UBASE_ERR_INVALID;
 
-    flow_def = uref_dup(flow_def);
+    flow_def = uref_dup(upipe_block_to_sound->flow_def_config);
     if (unlikely(flow_def == NULL)) {
         upipe_throw_fatal(upipe, UBASE_ERR_ALLOC);
         return UBASE_ERR_ALLOC;
     }
 
-    uref_block_flow_clear_format(flow_def);
-    uref_flow_set_def(flow_def, "sound.s32.");
-
-    uref_sound_flow_set_sample_size(flow_def, upipe_block_to_sound->sample_size);
-    uref_sound_flow_set_raw_sample_size(flow_def, upipe_block_to_sound->sample_bits);
-    uref_sound_flow_set_planes(flow_def, 0);
-    uref_sound_flow_add_plane(flow_def, "lr");
-    uref_sound_flow_set_channels(flow_def, upipe_block_to_sound->channels);
+    if(unlikely(!ubase_check(uref_flow_get_def(flow_def, &def))) ||
+                (ubase_ncmp(def, "sound.s32."))) {
+        return UBASE_ERR_INVALID;
+    }
+    uint8_t channels, planes, sample_size, raw_sample_size;
+    if(unlikely(!ubase_check(uref_flow_get_def(flow_def, &def))) ||
+                unlikely(!ubase_check(uref_sound_flow_get_channels(flow_def, &channels))) ||
+                unlikely(!ubase_check(uref_sound_flow_get_planes(flow_def, &planes))) ||
+                unlikely(!ubase_check(uref_sound_flow_get_sample_size(flow_def, &sample_size))) ||
+                unlikely(!ubase_check(uref_sound_flow_get_raw_sample_size(flow_def, &raw_sample_size)))) {
+        return UBASE_ERR_INVALID;
+    }
 
     upipe_input(upipe, flow_def, NULL);
 
@@ -220,7 +235,7 @@ static int upipe_block_to_sound_control(struct upipe *upipe, int command, va_lis
             if (request->type == UREQUEST_UBUF_MGR ||
                 request->type == UREQUEST_FLOW_FORMAT)
                 return upipe_throw_provide_request(upipe, request);
-            return upipe_block_to_sound_register_output_request(upipe, request);
+            return upipe_block_to_sound_alloc_output_proxy(upipe, request);
         }
         case UPIPE_UNREGISTER_REQUEST: {
             struct urequest *request = va_arg(args, struct urequest *);
@@ -265,8 +280,8 @@ static bool upipe_block_to_sound_handle(struct upipe *upipe, struct uref *uref,
     uref_block_size(uref, &block_size);
     /* alloc sound ubuf */
     int samples;
-    samples = block_size / 4 /*s32 */ / 2 /*stereo */;
-    block_size = samples * 8;             //block_size %2 != 0
+    samples = block_size / upipe_block_to_sound->sample_size;
+    block_size = samples * upipe_block_to_sound->sample_size;  //block_size %2 != 0
 
     assert(upipe_block_to_sound->ubuf_mgr);
     struct ubuf *ubuf_block_to_sound = ubuf_sound_alloc(upipe_block_to_sound->ubuf_mgr,
@@ -281,8 +296,7 @@ static bool upipe_block_to_sound_handle(struct upipe *upipe, struct uref *uref,
 
     /* map sound ubuf for writing */
     int32_t *w;
-    ubuf_sound_write_int32_t(ubuf_block_to_sound, 0, -1, &w,
-                             upipe_block_to_sound->planes);
+    ubuf_sound_write_int32_t(ubuf_block_to_sound, 0, -1, &w, upipe_block_to_sound->planes);
     /* map block ubuf for reading */
     const uint8_t *r;
     int end = -1;
@@ -290,8 +304,7 @@ static bool upipe_block_to_sound_handle(struct upipe *upipe, struct uref *uref,
     /* copy block to sound */
     memcpy(w, r, block_size);
     /* unmap ubufs */
-    ubuf_sound_unmap(ubuf_block_to_sound, 0, -1,
-                     upipe_block_to_sound->planes);
+    ubuf_sound_unmap(ubuf_block_to_sound, 0, -1, upipe_block_to_sound->planes);
     ubuf_block_unmap(uref->ubuf, 0);
     /* attach sound ubuf to uref */
     uref_attach_ubuf(uref, ubuf_block_to_sound);
@@ -311,7 +324,7 @@ static void upipe_block_to_sound_free(struct upipe *upipe)
     upipe_throw_dead(upipe);
     upipe_block_to_sound_clean_urefcount(upipe);
     upipe_block_to_sound_clean_ubuf_mgr(upipe);
-    upipe_block_to_sound_free_void(upipe);
+    upipe_block_to_sound_free_flow(upipe);
 }
 
 /** upipe_block_to_sound */
