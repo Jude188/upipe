@@ -1,4 +1,6 @@
 /*
+ * Copyright (C) 2017 Open Broadcast Systems Ltd
+ *
  * Authors: Judah Rand
  *
  * Permission is hereby granted, free of charge, to any person obtaining
