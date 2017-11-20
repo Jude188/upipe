@@ -207,14 +207,11 @@ static int upipe_block_to_sound_set_flow_def(struct upipe *upipe,
                 (ubase_ncmp(def, "sound.s32."))) {
         return UBASE_ERR_INVALID;
     }
-    uint8_t channels, planes, sample_size, raw_sample_size;
-    if(unlikely(!ubase_check(uref_flow_get_def(flow_def, &def))) ||
-                unlikely(!ubase_check(uref_sound_flow_get_channels(flow_def, &channels))) ||
-                unlikely(!ubase_check(uref_sound_flow_get_planes(flow_def, &planes))) ||
-                unlikely(!ubase_check(uref_sound_flow_get_sample_size(flow_def, &sample_size))) ||
-                unlikely(!ubase_check(uref_sound_flow_get_raw_sample_size(flow_def, &raw_sample_size)))) {
-        return UBASE_ERR_INVALID;
-    }
+    uint8_t channels, planes, sample_size;
+    UBASE_RETURN(uref_flow_get_def(flow_def, &def))
+    UBASE_RETURN(uref_sound_flow_get_channels(flow_def, &channels))
+    UBASE_RETURN(uref_sound_flow_get_planes(flow_def, &planes))
+    UBASE_RETURN(uref_sound_flow_get_sample_size(flow_def, &sample_size))
 
     upipe_input(upipe, flow_def, NULL);
 

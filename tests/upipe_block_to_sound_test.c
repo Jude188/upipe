@@ -35,6 +35,7 @@
 #include <upipe/udict_inline.h>
 #include <upipe/ubuf.h>
 #include <upipe/ubuf_block.h>
+#include <upipe/ubuf_block_mem.h>
 #include <upipe/ubuf_pic_mem.h>
 #include <upipe/ubuf_sound_mem.h>
 #include <upipe/uref.h>
@@ -155,10 +156,8 @@ static struct upipe_mgr block_to_sound_test_mgr = {
 
 int main(int argc, char **argv)
 {
-    printf("Compiled %s %s - %s\n", __DATE__, __TIME__, __FILE__);
-
     struct uref *uref;
-    uint8_t block_size = 4096;
+    int block_size = 4096;
     uint8_t sample_size = 8;
     uint8_t channels = 2;
 
@@ -182,9 +181,9 @@ int main(int argc, char **argv)
     assert(logger != NULL);
 
     /* set up sound flow definition packet */
-    uref = uref_sound_flow_alloc_def(uref_mgr, "sound.s32.", &channels, &sample_size);
+    uref = uref_sound_flow_alloc_def(uref_mgr, "sound.s32.", channels, sample_size);
     uref_sound_flow_set_planes(uref, 0);
-    uref_sound_flow_add_plane(uref, "l");
+    uref_sound_flow_add_plane(uref, "lr");
     uref_sound_flow_set_raw_sample_size(uref, 20);
     assert(uref);
 
@@ -199,7 +198,7 @@ int main(int argc, char **argv)
     struct upipe *block_to_sound_test = upipe_void_alloc(&block_to_sound_test_mgr,
                                                uprobe_use(logger));
     assert(block_to_sound_test != NULL);
-    ubase_assert(upipe_set_output(block_to_sound, block_to_sound_test));
+    ubase_assert(upipe_set_output(upipe_block_to_sound, block_to_sound_test));
 
     uref_free(uref);
     const char *def;
@@ -209,10 +208,10 @@ int main(int argc, char **argv)
 
     /* block */
     struct ubuf_mgr *block_mgr = ubuf_block_mem_mgr_alloc(UBUF_POOL_DEPTH,
-            UBUF_POOL_DEPTH, umem_mgr, 0, 0, 0);
+            UBUF_POOL_DEPTH, umem_mgr, 0, 0, 0, 0);
     assert(block_mgr);
 
-    uref = uref_block_alloc(uref_mgr, block_mgr, block_size;)
+    uref = uref_block_alloc(uref_mgr, block_mgr, block_size);
     assert(uref);
     sound_fill_in(uref->ubuf);
 
@@ -220,18 +219,18 @@ int main(int argc, char **argv)
     upipe_input(upipe_block_to_sound, uref, NULL);
     assert(output != NULL);
     uint8_t samples = block_size/ sample_size;
-    uint8_t size;
-    ubase_assert(ubuf_sound_size(output, &size, &sample_size));
+    size_t size;
+    ubase_assert(ubuf_sound_size(output->ubuf, &size, &sample_size));
     assert(size == samples);
     assert(sample_size == 8);
 
-    const uint32_t *r;
-    size2 = -1;
-    ubase_assert(ubuf_sound_plane_read_int32_t(output, 'l', 0, &size2, &r));
+    const int32_t *r;
+    int size2 = -1;
+    ubase_assert(uref_sound_plane_read_int32_t(output, "lr", 0, size2, &r));
     assert(size2 == block_size);
     for (int i = 0; i < block_size; i++)
-        assert(r[i] == (uint8_t)('l' + i));
-    uref_sound_plane_unmap(output, 'l', 0, -1);
+        assert(r[i] == (int32_t)("lr" + i));
+    uref_sound_plane_unmap(output, "lr", 0, -1);
     uref_free(output);
 
     upipe_release(upipe_block_to_sound);
