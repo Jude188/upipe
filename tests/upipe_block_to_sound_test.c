@@ -222,7 +222,7 @@ int main(int argc, char **argv)
     ubase_assert(uref_sound_plane_read_int32_t(output, "lr", 0, size2, &r));
     assert(size2 == block_size);
     for (int i = 0; i < block_size; i++)
-        assert(r[i] == (int32_t)("lr" + i));
+        assert(r[i] == (int32_t)('lr' + i));
     uref_sound_plane_unmap(output, "lr", 0, -1);
     uref_free(output);
 
