@@ -98,7 +98,8 @@ check_PROGRAMS = \
 	upipe_filter_blend_test	\
 	upipe_video_blank_test \
 	upipe_audio_blank_test \
-	upipe_grid_test
+	upipe_grid_test \
+	upipe_block_to_sound_test
 
 TESTS = \
 	ulist_test \
