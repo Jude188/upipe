@@ -192,6 +192,7 @@ int main(int argc, char **argv)
     struct upipe *upipe_block_to_sound = upipe_flow_alloc(upipe_block_to_sound_mgr,
             uprobe_pfx_alloc(uprobe_use(logger), UPROBE_LOG_LEVEL, "block_to_sound"), uref);
     assert(upipe_block_to_sound);
+    uref_free(uref);
 
     struct upipe *block_to_sound_test = upipe_void_alloc(&block_to_sound_test_mgr,
                                                uprobe_use(logger));
