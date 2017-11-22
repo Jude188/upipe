@@ -131,7 +131,7 @@ static struct upipe *upipe_block_to_sound_alloc(struct upipe_mgr *mgr,
     }
     uref_sound_flow_get_sample_size(flow_def,
             &upipe_block_to_sound->sample_size);
-    upipe_block_to_sound->flow_def_config = uref_dup(flow_def);
+    upipe_block_to_sound->flow_def_config = flow_def;
 
     upipe_block_to_sound_init_urefcount(upipe);
     upipe_block_to_sound_init_output(upipe);
@@ -285,6 +285,8 @@ static void upipe_block_to_sound_free(struct upipe *upipe)
 {
     struct upipe_block_to_sound *upipe_block_to_sound = upipe_block_to_sound_from_upipe(upipe);
     upipe_throw_dead(upipe);
+    uref_free(upipe_block_to_sound->flow_def_config);
+    upipe_block_to_sound_clean_output(upipe);
     upipe_block_to_sound_clean_urefcount(upipe);
     upipe_block_to_sound_clean_ubuf_mgr(upipe);
     upipe_block_to_sound_free_flow(upipe);
