@@ -156,16 +156,16 @@ static void upipe_block_to_sound_input(struct upipe *upipe, struct uref *uref, s
     /* get block size */
     size_t block_size = 0;
     uref_block_size(uref, &block_size);
-    /* alloc sound ubuf */
-    int samples;
 
     /* drop incomplete samples */
     if (block_size % upipe_block_to_sound->sample_size != 0) {
         upipe_err(upipe, "Incomplete samples detected");
-        samples = block_size / upipe_block_to_sound->sample_size;
-        block_size = samples * upipe_block_to_sound->sample_size;
     }
 
+    int samples = block_size / upipe_block_to_sound->sample_size;
+    block_size = samples * upipe_block_to_sound->sample_size;
+
+    /* alloc sound ubuf */
     assert(upipe_block_to_sound->ubuf_mgr);
     struct ubuf *ubuf_block_to_sound = ubuf_sound_alloc(upipe_block_to_sound->ubuf_mgr,
                                                         samples);
