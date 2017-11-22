@@ -160,7 +160,7 @@ static void upipe_block_to_sound_input(struct upipe *upipe, struct uref *uref, s
     int samples;
 
     /* drop incomplete samples */
-    if (block_size % sample_size != 0) {
+    if (block_size % upipe_block_to_sound->sample_size != 0) {
         upipe_err(upipe, "Incomplete samples detected");
         samples = block_size / upipe_block_to_sound->sample_size;
         block_size = samples * upipe_block_to_sound->sample_size;
