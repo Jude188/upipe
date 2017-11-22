@@ -198,7 +198,7 @@ int main(int argc, char **argv)
     assert(block_to_sound_test != NULL);
     ubase_assert(upipe_set_output(upipe_block_to_sound, block_to_sound_test));
 
-    /* send flow def to block_to_sond */
+    /* send flow def to block_to_sound */
     ubase_assert(upipe_set_flow_def(upipe_block_to_sound, flow_def));
     uref_free(flow_def);
     const char *def;
