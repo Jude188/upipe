@@ -231,7 +231,6 @@ static int upipe_block_to_sound_set_flow_def(struct upipe *upipe,
     UBASE_RETURN(uref_sound_flow_get_planes(flow_def, &planes))
     UBASE_RETURN(uref_sound_flow_get_sample_size(flow_def, &sample_size))
 
-    uref_dump(flow_def, upipe->uprobe);
     upipe_block_to_sound_store_flow_def(upipe, uref_dup(flow_def));
     upipe_block_to_sound_require_ubuf_mgr(upipe, flow_def);
 
