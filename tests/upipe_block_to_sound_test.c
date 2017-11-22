@@ -40,8 +40,7 @@
 #include <upipe/ubuf_sound_mem.h>
 #include <upipe/uref.h>
 #include <upipe/uref_block.h>
-#include <upipe/uref_pic.h>
-#include <upipe/uref_pic_flow.h>
+#include <upipe/uref_block_flow.h>
 #include <upipe/uref_sound.h>
 #include <upipe/uref_sound_flow.h>
 #include <upipe/uref_flow.h>
@@ -67,10 +66,12 @@ static void block_fill_in(struct ubuf *ubuf)
     size_t size;
     ubase_assert(ubuf_block_size(ubuf, &size));
 
+    int block_size = -1;
     uint8_t *buffer;
+    ubase_assert(ubuf_block_write(ubuf, 0, &block_size, &buffer));
+
     for (int x = 0; x < size; x++)
-        buffer[x] = (uint32_t)('lr' + x);
-    ubase_assert(ubuf_block_write(ubuf, 0, -1, &buffer));
+        buffer[x] = x;
 
     ubase_assert(ubuf_block_unmap(ubuf, 0));
 }
@@ -150,7 +151,7 @@ static struct upipe_mgr block_to_sound_test_mgr = {
 int main(int argc, char **argv)
 {
     struct uref *uref;
-    int block_size = 4096;
+    int block_size = 256;
     uint8_t sample_size = 8;
     uint8_t channels = 2;
 
@@ -173,12 +174,16 @@ int main(int argc, char **argv)
                                    UBUF_POOL_DEPTH);
     assert(logger != NULL);
 
-    /* set up sound flow definition packet */
-    uref = uref_sound_flow_alloc_def(uref_mgr, "sound.s32.", channels, sample_size);
+    /* set up sound flow definition config packet */
+    uref = uref_sound_flow_alloc_def(uref_mgr, "s32.", channels, sample_size);
     uref_sound_flow_set_planes(uref, 0);
     uref_sound_flow_add_plane(uref, "lr");
     uref_sound_flow_set_raw_sample_size(uref, 20);
     assert(uref);
+
+    /* set up sound block flow definition packet */
+    struct uref *flow_def = uref_block_flow_alloc_def(uref_mgr, "");
+    assert(flow_def);
 
     /* build block_to_sound pipe */
     struct upipe_mgr *upipe_block_to_sound_mgr = upipe_block_to_sound_mgr_alloc();
@@ -193,11 +198,13 @@ int main(int argc, char **argv)
     assert(block_to_sound_test != NULL);
     ubase_assert(upipe_set_output(upipe_block_to_sound, block_to_sound_test));
 
-    uref_free(uref);
+    /* send flow def to block_to_sond */
+    ubase_assert(upipe_set_flow_def(upipe_block_to_sound, flow_def));
+    uref_free(flow_def);
     const char *def;
     ubase_assert(upipe_get_flow_def(upipe_block_to_sound, &uref));
     ubase_assert(uref_flow_get_def(uref, &def));
-    assert(strcmp(def, "block."));
+    assert(!ubase_ncmp(def, "sound."));
 
     /* block */
     struct ubuf_mgr *block_mgr = ubuf_block_mem_mgr_alloc(UBUF_POOL_DEPTH,
@@ -211,18 +218,22 @@ int main(int argc, char **argv)
     /* Now send uref */
     upipe_input(upipe_block_to_sound, uref, NULL);
     assert(output != NULL);
-    uint8_t samples = block_size/ sample_size;
+    int no_samples = block_size/ sample_size;
     size_t size;
     ubase_assert(ubuf_sound_size(output->ubuf, &size, &sample_size));
-    assert(size == samples);
+    assert(size == no_samples);
     assert(sample_size == 8);
 
     const int32_t *r;
     int size2 = -1;
     ubase_assert(uref_sound_plane_read_int32_t(output, "lr", 0, size2, &r));
-    assert(size2 == block_size);
-    for (int i = 0; i < block_size; i++)
-        assert(r[i] == (int32_t)('lr' + i));
+
+    block_size = no_samples * sample_size;
+
+    for (int x = 0 ; x < no_samples; x++) {
+        int32_t s = (4*x) | ((4*x+1) << 8) | ((4*x+2) << 16) | ((4*x+3) << 24);
+        assert(s == r[x]);
+    }
     uref_sound_plane_unmap(output, "lr", 0, -1);
     uref_free(output);
 
